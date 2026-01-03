@@ -681,9 +681,13 @@ PROGRAM TEST
         j = 0
     END DO
 
-    do i = 1, 10
+    do 100, i = 1, 10
       if (diff) go to 100
 100 end do
+
+    do 200 i = j, k+1
+       ! empty
+200 end do
 
 END PROGRAM
 
@@ -769,19 +773,30 @@ END PROGRAM
         (identifier)
         (number_literal))
       (end_do_loop_statement))
-    (do_loop
-      (do_statement
-        (loop_control_expression
+    (do_label_statement
+      (statement_label_reference)
+      (loop_control_expression
+        (identifier)
+        (number_literal)
+        (number_literal)))
+    (if_statement
+      (parenthesized_expression
+        (identifier))
+      (keyword_statement
+        (statement_label_reference)))
+    (end_do_label_statement
+      (statement_label))
+    (do_label_statement
+      (statement_label_reference)
+      (loop_control_expression
+        (identifier)
+        (identifier)
+        (math_expression
           (identifier)
-          (number_literal)
-          (number_literal)))
-      (if_statement
-        (parenthesized_expression
-          (identifier))
-        (keyword_statement
-          (statement_label_reference)))
-      (statement_label)
-      (end_do_loop_statement))
+          (number_literal))))
+    (comment)
+    (end_do_label_statement
+      (statement_label))
     (end_program_statement)))
 
 ================================================================================
