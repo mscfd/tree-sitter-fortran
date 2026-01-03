@@ -82,27 +82,27 @@ module.exports = grammar({
     [$._argument_list, $.parenthesized_expression],
     [$.case_statement],
     [$.data_set, $._expression],
-    [$.data_statement, $.identifier],
+    [$.data_statement, $._identifier],
     [$.data_value, $._expression],
     [$.else_clause],
-    [$.elseif_clause, $.identifier],
+    [$.elseif_clause, $._identifier],
     [$.elseif_clause],
     [$.elsewhere_clause],
     [$.intrinsic_type],
-    [$._intrinsic_type, $.identifier],
+    [$._intrinsic_type, $._identifier],
     [$.module_statement, $.procedure_qualifier],
     [$.procedure_declaration],
     [$.rank_statement],
-    [$.stop_statement, $.identifier],
+    [$.stop_statement, $._identifier],
     [$.type_statement],
     [$.preproc_ifdef_in_specification_part, $.program],
     [$.preproc_else_in_specification_part, $.program],
-    [$.coarray_critical_statement, $.identifier],
-    [$.format_statement, $.identifier],
-    [$._inline_if_statement, $.arithmetic_if_statement, $._block_if_statement, $.identifier],
-    [$.cray_pointer_declaration, $.identifier],
-    [$.unit_identifier, $.identifier],
-    [$.format_identifier, $.identifier],
+    [$.coarray_critical_statement, $._identifier],
+    [$.format_statement, $._identifier],
+    [$._inline_if_statement, $.arithmetic_if_statement, $._block_if_statement, $._identifier],
+    [$.cray_pointer_declaration, $._identifier],
+    [$.unit_identifier, $._identifier],
+    [$.format_identifier, $._identifier],
   ],
 
   supertypes: $ => [
@@ -798,7 +798,8 @@ module.exports = grammar({
       $.identifier,
       $._generic_procedure
     ),
-    method_name: $ => alias($.identifier, 'method_name'),
+    method_name: $ => $._identifier,
+
 
     procedure_kind: $ => choice(
       caseInsensitive('generic'),
@@ -2246,11 +2247,12 @@ module.exports = grammar({
     // actual argument
     nil_literal: $ => caseInsensitive('\\.nil\\.'),
 
+    identifier: $ => $._identifier,
     // Fortran doesn't have reserved keywords, and to allow _just
     // enough_ ambiguity so that tree-sitter can parse tokens
     // correctly as either a keyword or a plain identifier, we must
     // add the keywords here -- and possibly in `conflicts` too.
-    identifier: $ => choice(
+    _identifier: $ => choice(
       /[a-zA-Z_$][\w$]*/,
       caseInsensitive('allocatable'),
       caseInsensitive('asynchronous'),
