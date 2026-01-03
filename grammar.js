@@ -903,6 +903,7 @@ module.exports = grammar({
     variable_modification: $ => seq(
       choice(
         alias($._standalone_type_qualifier, $.type_qualifier),
+        alias($._preproc_type_qualifier, $.type_qualifier),
         $.variable_attributes,
       ),
       optional('::'),
@@ -992,6 +993,11 @@ module.exports = grammar({
     _non_decl_type_spec: $ => choice(
       $.intrinsic_type,
       alias($._derived_type, $.derived_type),
+      $.preproc_type
+    ),
+
+    preproc_type: $ => choice(
+      alias(/_[a-zA-Z0-9]+4me_/, 'preproc_keyword'),
     ),
 
     derived_type: $ => seq(
@@ -1017,6 +1023,7 @@ module.exports = grammar({
     _decl_type_spec: $ => choice(
       $.intrinsic_type,
       $.derived_type,
+      $.preproc_type
     ),
 
     declared_type: $ => seq(
@@ -1095,11 +1102,44 @@ module.exports = grammar({
       caseInsensitive('volatile')
     ),
 
+    _preproc_type_qualifier: $ => choice(
+      alias(/_DIM1_/, '_DIM1_'),
+      alias(/_DIM2_/, '_DIM2_'),
+      alias(/_DIM3_/, '_DIM3_'),
+      alias(/_DIM4_/, '_DIM4_'),
+      alias(/_DIM1_0_/, '_DIM1_0_'),
+      alias(/_ADIM1_/, '_ADIM1_'),
+      alias(/_ADIM2_/, '_ADIM2_'),
+      alias(/_ADIM3_/, '_ADIM3_'),
+      alias(/_ADIM4_/, '_ADIM4_'),
+      alias(/_PDIM1_/, '_PDIM1_'),
+      alias(/_PDIM2_/, '_PDIM2_'),
+      alias(/_PDIM3_/, '_PDIM3_'),
+      alias(/_PDIM4_/, '_PDIM4_'),
+      prec.right(seq(
+        alias(/_DIMENSION1_/, '_DIMENSION1_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        alias(/_DIMENSION2_/, '_DIMENSION2_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        alias(/_DIMENSION3_/, '_DIMENSION3_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        alias(/_DIMENSION4_/, '_DIMENSION4_'),
+        $.argument_list
+      )),
+    ),
+
     // These are split out to avoid clash with assignment statements
     // as it turns out `len` is more likely to be used as a variable
     // name than any of the other qualifiers
     type_qualifier: $ => choice(
       $._standalone_type_qualifier,
+      $._preproc_type_qualifier,
       // Next two technically only valid on derived type components
       field('type_param', caseInsensitive('kind')),
       field('type_param', caseInsensitive('len')),
