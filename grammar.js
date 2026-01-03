@@ -769,9 +769,11 @@ module.exports = grammar({
     derived_type_procedures: $ => seq(
       $.contains_statement,
       repeat(choice(
-        $.public_statement,
-        $.private_statement,
+        $.public_statement,    // not allowed according to f2023 draft?
+        $.private_statement,   // only "private" allowed, the rule allows "private :: ..."
         $.procedure_statement,
+        $.generic_statement,
+        $.final_statement,
         $.include_statement,
         alias($.preproc_if_in_bound_procedures, $.preproc_if),
         alias($.preproc_ifdef_in_bound_procedures, $.preproc_ifdef),
@@ -788,26 +790,41 @@ module.exports = grammar({
         commaSep1($.procedure_attribute)
       )),
       optional('::'),
-      commaSep1(field('declarator', choice(
+      field('declarator', choice(
         $.method_name,
         $.binding,
-      ))),
+      )),
     ),
+
+    generic_statement: $ => seq(
+      caseInsensitive('generic'),
+      '::',
+      field('declarator', $.binding_list)
+    ),
+
+    final_statement: $ => seq(
+      caseInsensitive('final'),
+      '::',
+      field('declarator', $.method_list)
+    ),
+
     binding: $ => seq($.binding_name, '=>', $.method_name),
     binding_name: $ => choice(
       $.identifier,
       $._generic_procedure
     ),
+    binding_list: $ => seq($.binding_name, '=>', $._method_list),
+
+    method_list: $ => $._method_list,
+    _method_list: $ => commaSep1($.method_name),
     method_name: $ => $._identifier,
 
 
     procedure_kind: $ => choice(
-      caseInsensitive('generic'),
       caseInsensitive('initial'),
       caseInsensitive('procedure'),
       seq(caseInsensitive('module'), caseInsensitive('procedure')),
       caseInsensitive('property'),
-      caseInsensitive('final')
     ),
 
     procedure_attribute: $ => prec.left(choice(
