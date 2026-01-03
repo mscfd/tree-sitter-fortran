@@ -468,6 +468,7 @@ module.exports = grammar({
         $.procedure_attributes,
         $.procedure_qualifier,
         field('type', $.intrinsic_type),
+        field('type', $.preproc_type),
         field('type', $.derived_type)
       ))),
 
@@ -612,6 +613,7 @@ module.exports = grammar({
         commaSep1(seq(
           choice(
             $.intrinsic_type,
+            $.preproc_type,
             $.derived_type
           ),
           '(',
@@ -844,6 +846,7 @@ module.exports = grammar({
     variable_declaration: $ => seq(
       field('type', choice(
         $.intrinsic_type,
+        $.preproc_type,
         $.derived_type,
         alias($.procedure_declaration, $.procedure),
         $.declared_type,
@@ -870,6 +873,7 @@ module.exports = grammar({
           choice(
             alias($.identifier, $.procedure_interface),
             $.intrinsic_type,
+            $.preproc_type,
             $.derived_type,
           )
         ),
@@ -881,6 +885,7 @@ module.exports = grammar({
     variable_modification: $ => seq(
       repeat1(choice(
         alias($._standalone_type_qualifier, $.type_qualifier),
+        alias($._preproc_type_qualifier, $.type_qualifier),
         $.variable_attributes,
       )),
       optional('::'),
@@ -953,6 +958,10 @@ module.exports = grammar({
     intrinsic_type: $ => seq(
       $._intrinsic_type,
       optional(field('kind', $.kind)),
+    ),
+
+    preproc_type: $ => choice(
+      token(/_[a-zA-Z0-9]+4me_/),
     ),
 
     derived_type: $ => seq(
@@ -1048,11 +1057,45 @@ module.exports = grammar({
       caseInsensitive('volatile')
     ),
 
+    _preproc_type_qualifier: $ => choice(
+      token('_DIM1_'),
+      token('_DIM2_'),
+      token('_DIM3_'),
+      token('_DIM4_'),
+      token('_DIM1_0_'),
+      token('_ADIM1_'),
+      token('_ADIM2_'),
+      token('_ADIM3_'),
+      token('_ADIM4_'),
+      token('_PDIM1_'),
+      token('_PDIM2_'),
+      token('_PDIM3_'),
+      token('_PDIM4_'),
+      token(/_(A|P)?DIM[1-3]_/),
+      prec.right(seq(
+        caseInsensitive('_DIMENSION1_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        caseInsensitive('_DIMENSION2_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        caseInsensitive('_DIMENSION3_'),
+        $.argument_list
+      )),
+      prec.right(seq(
+        caseInsensitive('_DIMENSION4_'),
+        $.argument_list
+      )),
+    ),
+
     // These are split out to avoid clash with assignment statements
     // as it turns out `len` is more likely to be used as a variable
     // name than any of the other qualifiers
     type_qualifier: $ => choice(
       $._standalone_type_qualifier,
+      $._preproc_type_qualifier,
       // Next two technically only valid on derived type components
       field('type_param', caseInsensitive('kind')),
       field('type_param', caseInsensitive('len')),
@@ -1565,7 +1608,7 @@ module.exports = grammar({
             whiteSpacedKeyword('class', 'is')
           ),
           choice(
-            seq('(', field('type', choice($.intrinsic_type, $.identifier)), ')'),
+            seq('(', field('type', choice($.intrinsic_type, $.preproc_type, $.identifier)), ')'),
           ),
         ),
         seq(
@@ -1820,6 +1863,7 @@ module.exports = grammar({
       optional(field('type', seq(
         choice(
           $.intrinsic_type,
+          $.preproc_type,
           $.identifier,
         ),
         '::'
@@ -2082,7 +2126,7 @@ module.exports = grammar({
 
     _array_constructor_f2003: $ => seq('[', $._ac_value_list, ']'),
 
-    _type_spec: $ => seq(choice($.intrinsic_type, $.derived_type), '::'),
+    _type_spec: $ => seq(choice($.intrinsic_type, $.preproc_type, $.derived_type), '::'),
 
     _ac_value_list: $ => choice(
       field('type', $._type_spec),
