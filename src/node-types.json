@@ -7469,6 +7469,14 @@
     "named": false
   },
   {
+    "type": "endenumeration",
+    "named": false
+  },
+  {
+    "type": "endenumerationtype",
+    "named": false
+  },
+  {
     "type": "endfile",
     "named": false
   },
@@ -7534,6 +7542,10 @@
   },
   {
     "type": "enumeration",
+    "named": false
+  },
+  {
+    "type": "enumerationtype",
     "named": false
   },
   {
