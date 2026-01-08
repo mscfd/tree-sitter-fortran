@@ -187,6 +187,10 @@ module.exports = grammar({
       repeat($._statement),
       optional($.internal_procedures)
     ), 1),
+    ...preprocIf('_in_statements_no_label_end_do', $ => seq(
+      repeat($._statement_no_label_end_do),
+      optional($.internal_procedures)
+    ), 1),
     ...preprocIf('_in_procedure_statements', $ => seq(
       repeat($._statement),
       optional($.internal_procedures)
@@ -1100,6 +1104,26 @@ module.exports = grammar({
     ),
 
     _statements: $ => choice(
+      $._statements_no_label_end_do,
+      $.end_do_label_statement
+    ),
+
+    _statement_no_label_end_do: $ => choice(
+      alias($.preproc_if_in_statements_no_label_end_do, $.preproc_if),
+      alias($.preproc_ifdef_in_statements_no_label_end_do, $.preproc_ifdef),
+      $.preproc_include,
+      $.preproc_def,
+      $.preproc_function_def,
+      $.preproc_call,
+      seq(
+        optional($.statement_label),
+        $._statements_no_label_end_do,
+        $._end_of_statement
+      ),
+      ';'
+    ),
+
+    _statements_no_label_end_do: $ => choice(
       $.assignment_statement,
       $.pointer_association_statement,
       $.subroutine_call,
@@ -1113,7 +1137,6 @@ module.exports = grammar({
       $.select_rank_statement,
       $.do_loop,
       $.do_label_statement,
-      $.end_do_label_statement,
       $.format_statement,
       $.open_statement,
       $.close_statement,
@@ -1254,7 +1277,7 @@ module.exports = grammar({
       optional($.block_label_start_expression),
       $.do_statement,
       $._end_of_statement,
-      repeat($._statement),
+      repeat($._statement_no_label_end_do),
       optional($.statement_label),
       $.end_do_loop_statement
     ),
@@ -1284,10 +1307,10 @@ module.exports = grammar({
     // Because we've lumped together labelled-do and non-block-do in
     // `do_label_statement`, we also need to be able to capture `end
     // do` for a labelled-do
-    end_do_label_statement: $ => seq(
-      prec(-1, $.statement_label),
-      prec(2, blockStructureEnding1($, 'do', {eos: false})),
-    ),
+    end_do_label_statement: $ => prec(-1, seq(
+      $.statement_label,
+      whiteSpacedKeyword('end', 'do')
+    )),
 
     while_statement: $ => seq(caseInsensitive('while'),
       $.parenthesized_expression),
