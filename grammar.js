@@ -2492,15 +2492,16 @@ function blockStructureEnding1 ($, structType, options) {
   const end_strt = alias(caseInsensitive('end' + structType, false), 'end' + structType);
 
   const obj_end_stmt = choice(
-    seq(end, strt),
-    end_strt,
+    // when structure keyword is present, allow the label
+    labelRule ? seq(end, strt, optional(labelRule)) : seq(end, strt),
+    labelRule ? seq(end_strt, optional(labelRule)) : end_strt,
+    // 'end' alone does not accept a label, as this can grab other structure keywords
+    // in incomplete statements (which happens frequently during typing)
     end
   );
 
-  // add label, but only if provided
-  const obj = prec.right(labelRule ? seq(obj_end_stmt, optional(labelRule)) : obj_end_stmt)
-  // higher precedence, to avoid conflict like: is 'do' in 'end do' part of end
-  // or does it start a new loop? prefer binding to end
+  const obj = prec.right(obj_end_stmt);
+
   return prec(1, eos ? seq(obj, $._end_of_statement) : obj)
 }
 
@@ -2518,11 +2519,15 @@ function blockStructureEnding2 ($, structType1, structType2, options) {
   const end_strt_1_2 = alias(caseInsensitive('end' + structType1 + structType2, false), 'end' + structType1 + structType2);
 
   const obj_end_stmt = choice(
-    seq(end, strt_1, strt_2),
+    // when both structure keywords are present, allow the label
+    labelRule ? seq(end, strt_1, strt_2, optional(labelRule)) : seq(end, strt_1, strt_2),
+    labelRule ? seq(end_strt_1, strt_2,  optional(labelRule)) : seq(end_strt_1, strt_2),
+    labelRule ? seq(end, strt_1_2,       optional(labelRule)) : seq(end, strt_1_2),
+    labelRule ? seq(end_strt_1_2,        optional(labelRule)) : seq(end_strt_1_2),
+    // 'end' alone or with just one keyword does not accept a label,
+    // as this can grab other structure keywords
+    // in incomplete statements (which happens frequently during typing)
     seq(end, strt_1),
-    seq(end_strt_1, strt_2),
-    seq(end, strt_1_2),
-    end_strt_1_2,
     end_strt_1,
     end
   );
