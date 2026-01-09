@@ -1384,7 +1384,10 @@ module.exports = grammar({
     // do` for a labelled-do
     end_do_label_statement: $ => prec(-1, seq(
       $.statement_label,
-      whiteSpacedKeyword('end', 'do')
+      // we need to require both, otherwise other rules for end statements
+      // (with lazy structure name) grab the end do and parsing fails
+      caseInsensitive('end'),
+      caseInsensitive('do'),
     )),
 
     while_statement: $ => seq(caseInsensitive('while'),
