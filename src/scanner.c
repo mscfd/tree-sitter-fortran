@@ -4,6 +4,22 @@
 #include <wctype.h>
 #include <string.h>
 
+// enable debug output
+#define FORTRAN_SCANNER_DEBUG
+
+#ifdef FORTRAN_SCANNER_DEBUG
+#include <stdio.h>
+#define DEBUG_PRINT(...) fprintf(stderr, "[FORTRAN_SCANNER] " __VA_ARGS__)
+#define DEBUG_LOOKAHEAD(lexer)                                          \
+    fprintf(stderr, "[LOOKAHEAD] char:'%c'(0x%x) eof:%d\n",             \
+            (lexer)->lookahead > 31 && (lexer)->lookahead < 127 ? (char)(lexer)->lookahead : '?', \
+            (lexer)->lookahead,                                         \
+            (lexer)->eof(lexer))
+#else
+#define DEBUG_PRINT(...) do {} while(0)
+#define DEBUG_LOOKAHEAD(lexer) do {} while(0)
+#endif
+
 enum TokenType {
     BLANK_LINE,
     PREPROC_NEWLINE,
@@ -420,6 +436,8 @@ static void track_labeled_do(Scanner *scanner, int32_t label) {
       int i = scanner->depth - 1;
       if (scanner->labels[i] == label) {
         scanner->counts[i]++;
+        DEBUG_PRINT("incrementing count for label %d to %d\n",
+                    label, scanner->counts[i]);
         return;
       }
     }
@@ -429,8 +447,10 @@ static void track_labeled_do(Scanner *scanner, int32_t label) {
         scanner->labels[scanner->depth] = label;
         scanner->counts[scanner->depth] = 1;
         scanner->depth++;
+        DEBUG_PRINT("added new label %d at depth %d\n", label, scanner->depth);
     } else {
         // should we properly abort here?
+        DEBUG_PRINT("ERROR: stack overflow, cannot track label %d\n", label);
     }
 }
 
@@ -439,7 +459,10 @@ static void track_labeled_do(Scanner *scanner, int32_t label) {
 static inline bool scan_do_label_eos(Scanner *scanner, TSLexer *lexer) {
     if (scanner->is_pending_eos_virtual) {
         scanner->is_pending_eos_virtual = false;
+        DEBUG_PRINT("Emitting EOS after DO_LABEL_VIRTUAL, %d remaining\n",
+                    scanner->pending_label_virtual);
         lexer->result_symbol = END_OF_STATEMENT;
+        DEBUG_PRINT(">>> TOKEN: END_OF_STATEMENT\n");
         return true;
     } else {
         return false;
@@ -454,11 +477,16 @@ static inline bool scan_do_label_pending(Scanner *scanner, TSLexer *lexer) {
             scanner->pending_label_virtual--;
             // schedule an eos for the next token to finish the virtual statement
             scanner->is_pending_eos_virtual = true;
+            DEBUG_PRINT("Emitting DO_LABEL_VIRTUAL and schedule EOS, %d remaining\n",
+                        scanner->pending_label_virtual);
             lexer->result_symbol = DO_LABEL_VIRTUAL;
+            DEBUG_PRINT(">>> TOKEN: DO_LABEL_VIRTUAL\n");
         } else {
             // emit last termination symbol which is do_label_continue
             scanner->pending_label_virtual = 0;
+            DEBUG_PRINT("Emitting DO_LABEL_CONTINUE, no further pending loops to close\n");
             lexer->result_symbol = DO_LABEL_CONTINUE;
+            DEBUG_PRINT(">>> TOKEN: DO_LABEL_CONTINUE\n");
         }
         return true;
     } else {
@@ -483,18 +511,22 @@ static bool scan_do_label_continue(Scanner *scanner, TSLexer *lexer, int32_t lab
             loops_to_close = scanner->counts[i];
             // remove from stack
             scanner->depth--;
+            DEBUG_PRINT("Label %d terminates %d loop(s)\n", label, loops_to_close);
+            DEBUG_PRINT("Stack depth now %d\n", scanner->depth);
         }
     }
 
     // scanner->counts[i] is always greater than zero, if the label is on the stack,
     // hence loops_to_close == 0 means depth=0 or label is not at top of stack
     if (loops_to_close == 0) {
+        DEBUG_PRINT("Label %d not at top of stack\n", label);
         // label not on stack, hence this does not close a labeled do
         return false;
     }
 
     scanner->pending_label_virtual = loops_to_close;
     scanner->is_pending_eos_virtual = false;
+    DEBUG_PRINT("Setting up pending state for labeled do\n");
     scan_do_label_pending(scanner, lexer);
     return true;
 }
