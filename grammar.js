@@ -74,6 +74,7 @@ module.exports = grammar({
     $.custom_directive,
     $.multiline_preproc_comment,
     '&',
+    '\\',
   ],
 
   inline: $ => [

@@ -322,7 +322,7 @@ static bool scan_end_of_statement(Scanner *scanner, TSLexer *lexer) {
 
 static bool scan_start_line_continuation(Scanner *scanner, TSLexer *lexer) {
     // Now see if we should start a line continuation
-    scanner->in_line_continuation = (lexer->lookahead == '&');
+    scanner->in_line_continuation = (lexer->lookahead == '&') || (lexer->lookahead == '\\');
     if (!scanner->in_line_continuation) {
         return false;
     }
