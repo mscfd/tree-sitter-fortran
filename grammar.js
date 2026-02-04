@@ -183,6 +183,12 @@ module.exports = grammar({
       field('argument', optional($.preproc_arg)),
       token.immediate(/\r?\n/),
     ),
+    preproc_mpi: $ => seq(
+      choice('_MPI_call_', '_MPI_prepare_'),
+      token.immediate('('),
+      $._statements,
+      token.immediate(')')
+    ),
 
     ...preprocIf('', $ => repeat($._top_level_item), 4),
     ...preprocIf('_in_module', $ => seq(
@@ -1182,6 +1188,7 @@ module.exports = grammar({
       $.preproc_def,
       $.preproc_function_def,
       $.preproc_call,
+      $.preproc_mpi,
       seq(
         optional($.statement_label),
         $._statements,
@@ -1817,7 +1824,8 @@ module.exports = grammar({
     )),
 
     write_statement: $ => prec(1, seq(
-      caseInsensitive('write'),
+      choice(caseInsensitive('write'),
+             '_MPI_write_'),
       $._io_arguments,
       // Trailing comma here is a legacy extension to gfortran
       optional(','),
