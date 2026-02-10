@@ -177,7 +177,7 @@ module.exports = grammar({
       token.immediate(/\r?\n/),
     ),
 
-    ...preprocIf('', $ => repeat($._top_level_item)),
+    ...preprocIf('', $ => repeat($._top_level_item), 4),
     ...preprocIf('_in_module', $ => seq(
       repeat($._specification_part),
       optional($.internal_procedures)

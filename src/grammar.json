@@ -346,7 +346,7 @@
     },
     "preproc_if": {
       "type": "PREC",
-      "value": 0,
+      "value": 4,
       "content": {
         "type": "SEQ",
         "members": [
@@ -463,7 +463,7 @@
     },
     "preproc_ifdef": {
       "type": "PREC",
-      "value": 0,
+      "value": 4,
       "content": {
         "type": "SEQ",
         "members": [
@@ -590,7 +590,7 @@
     },
     "preproc_else": {
       "type": "PREC",
-      "value": 0,
+      "value": 4,
       "content": {
         "type": "SEQ",
         "members": [
@@ -636,7 +636,7 @@
     },
     "preproc_elif": {
       "type": "PREC",
-      "value": 0,
+      "value": 4,
       "content": {
         "type": "SEQ",
         "members": [
@@ -723,7 +723,7 @@
     },
     "preproc_elifdef": {
       "type": "PREC",
-      "value": 0,
+      "value": 4,
       "content": {
         "type": "SEQ",
         "members": [

@@ -932,3 +932,28 @@ Baz */
   (multiline_preproc_comment)
   (preproc_ifdef
     (identifier)))
+
+================================================================================
+Preprocessor If before module
+================================================================================
+
+#if A
+#endif
+
+#define B
+
+module my_mod
+end module my_mod
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (preproc_if
+    condition: (identifier))
+  (preproc_def
+    name: (identifier))
+  (module
+    (module_statement
+      (name))
+    (end_module_statement
+      (name))))
