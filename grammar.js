@@ -2372,6 +2372,7 @@ module.exports = grammar({
       caseInsensitive('kind'),
       caseInsensitive('len'),
       caseInsensitive('lock'),
+      caseInsensitive('module'),
       caseInsensitive('null'),
       prec(-1, caseInsensitive('open')),
       caseInsensitive('optional'),

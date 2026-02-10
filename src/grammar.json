@@ -22845,6 +22845,15 @@
           "type": "ALIAS",
           "content": {
             "type": "PATTERN",
+            "value": "[mM][oO][dD][uU][lL][eE]"
+          },
+          "named": false,
+          "value": "module"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "PATTERN",
             "value": "[nN][uU][lL][lL]"
           },
           "named": false,

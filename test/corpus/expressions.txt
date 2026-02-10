@@ -1076,7 +1076,7 @@ Keywords As Identifiers
 ================================================================================
 
 program demo
-   integer :: endif, if, elseif, error
+   integer :: endif, if, elseif, error, module
    integer, DIMENSION(2) :: function
    endif = 3; if = 2
    error = 1
@@ -1087,6 +1087,7 @@ program demo
       function(if) = endif/elseif
       print *, endif
    endif
+   module = 99
 end program
 
 subroutine foo
@@ -1105,6 +1106,7 @@ end subroutine foo
       (name))
     (variable_declaration
       (intrinsic_type)
+      (identifier)
       (identifier)
       (identifier)
       (identifier)
@@ -1155,6 +1157,9 @@ end subroutine foo
           (output_item_list
             (identifier))))
       (end_if_statement))
+    (assignment_statement
+      (identifier)
+      (number_literal))
     (end_program_statement))
   (subroutine
     (subroutine_statement
