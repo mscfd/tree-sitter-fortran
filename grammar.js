@@ -52,6 +52,8 @@ module.exports = grammar({
   name: 'fortran',
 
   externals: $ => [
+    $._blank_line,
+    $._preproc_newline,
     '&',
     $._integer_literal,
     $._float_literal,
@@ -69,7 +71,12 @@ module.exports = grammar({
   extras: $ => [
     // This allows escaping newlines everywhere, although this is only valid in
     // preprocessor statements
-    /\s|\\\r?\n/,
+    // /\s|\\\r?\n/,
+    // Match spaces/tabs and escaped newlines, but NOT \n
+    ///[ \t]|\\\r?\n/,
+    /[ \t]/,       // Only spaces and tabs
+    /\\\r?\n/,     // Line continuations are still okay here
+    $._blank_line,
     $.comment,
     $.custom_directive,
     $.multiline_preproc_comment,
@@ -159,6 +166,8 @@ module.exports = grammar({
       field('name', $.identifier),
       field('value', optional($.preproc_arg)),
       token(prec(1, /\r?\n/)), // force newline to win over preproc_arg
+      //token.immediate(/\r?\n/),
+      $._preproc_newline
     ),
 
     preproc_function_def: $ => seq(
@@ -2566,11 +2575,13 @@ function preprocIf(suffix, content, precedence = 0) {
       preprocessor('if'),
       field('condition', $._preproc_expression),
       optional(preprocComment($)),
-      '\n',
+      //'\n',
+      $._preproc_newline,
       content($),
       field('alternative', optional(alternativeBlock($))),
       preprocessor('endif'),
       optional(preprocComment($)),
+      $._preproc_newline,
     )),
 
     ['preproc_ifdef' + suffix]: $ => prec(precedence, seq(
@@ -2581,21 +2592,25 @@ function preprocIf(suffix, content, precedence = 0) {
       field('alternative', optional(alternativeBlock($))),
       preprocessor('endif'),
       optional(preprocComment($)),
+      $._preproc_newline,
     )),
 
     ['preproc_else' + suffix]: $ => prec(precedence, seq(
       preprocessor('else'),
       optional(preprocComment($)),
       content($),
+      $._preproc_newline,
     )),
 
     ['preproc_elif' + suffix]: $ => prec(precedence, seq(
       preprocessor('elif'),
       optional(preprocComment($)),
       field('condition', $._preproc_expression),
-      '\n',
+      //'\n',
+      $._preproc_newline,
       content($),
       field('alternative', optional(alternativeBlock($))),
+      $._preproc_newline,
     )),
 
     ['preproc_elifdef' + suffix]: $ => prec(precedence, seq(
@@ -2604,6 +2619,7 @@ function preprocIf(suffix, content, precedence = 0) {
       optional(preprocComment($)),
       content($),
       field('alternative', optional(alternativeBlock($))),
+      $._preproc_newline,
     )),
   };
 }

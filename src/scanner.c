@@ -5,6 +5,8 @@
 #include <string.h>
 
 enum TokenType {
+    BLANK_LINE,
+    PREPROC_NEWLINE,
     LINE_CONTINUATION,
     INTEGER_LITERAL,
     FLOAT_LITERAL,
@@ -24,6 +26,7 @@ enum TokenType {
 
 typedef struct {
     bool in_line_continuation;
+    bool holds_statement;
 
     // stack for tracking active DO labels and their counts
     int32_t depth;
@@ -272,51 +275,6 @@ static bool scan_hollerith_constant(TSLexer *lexer) {
     }
     lexer->result_symbol = HOLLERITH_CONSTANT;
     lexer->mark_end(lexer);
-    return true;
-}
-
-static bool scan_end_of_statement(Scanner *scanner, TSLexer *lexer) {
-    // Things that end statements in Fortran:
-    //
-    // - semicolons
-    // - end-of-line (various representations)
-    // - comments
-    //
-    // Comments are a bit surprising, but it turns out to be
-    // easier to handle line continuations if comments consume the
-    // newline
-
-    // Semicolons and EOF always end the statement
-    if (lexer->eof(lexer)) {
-        skip(lexer);
-        lexer->result_symbol = END_OF_STATEMENT;
-        return true;
-    }
-
-    // If we're in a line continuation, then don't end the statement
-    if (scanner->in_line_continuation) {
-        return false;
-    }
-
-    // Consume end of line characters, we allow '\n', '\r\n' and
-    // '\r' to cover unix, MSDOS and old style Macintosh.
-    // Handle comments here too, but don't consume them
-    if (lexer->lookahead == '\r') {
-        skip(lexer);
-        if (lexer->lookahead == '\n') {
-            skip(lexer);
-        }
-    } else {
-        if (lexer->lookahead == '\n') {
-            skip(lexer);
-        } else if (lexer->lookahead != '!') {
-            // Not a newline and not a comment, so not an
-            // end-of-statement
-            return false;
-        }
-    }
-
-    lexer->result_symbol = END_OF_STATEMENT;
     return true;
 }
 
@@ -589,28 +547,74 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         }
     }
 
-    // Consume any leading whitespace except newlines
+    // 1. Detect if we are starting at the very beginning of a line
+    bool started_at_column_zero = (lexer->get_column(lexer) == 0);
+
+    // 2. Consume horizontal whitespace (Spaces/Tabs)
     while (iswblank(lexer->lookahead)) {
         skip(lexer);
     }
 
-    // Close the current statement if we can
-    if (valid_symbols[END_OF_STATEMENT]) {
-        if (scan_end_of_statement(scanner, lexer)) {
-            return true;
+    // 3. Newline Logic
+    if (lexer->lookahead == '\n' || lexer->lookahead == '\r') {
+        // Capture specific needs from the parser
+        bool wants_newline = valid_symbols[PREPROC_NEWLINE];
+        bool wants_blank   = valid_symbols[BLANK_LINE];
+        bool wants_eos     = valid_symbols[END_OF_STATEMENT];
+
+        if (wants_newline || wants_blank || wants_eos) {
+            // Consume the newline characters
+            if (lexer->lookahead == '\r') advance(lexer);
+            if (lexer->lookahead == '\n') advance(lexer);
+
+            // PRIORITY 1: Explicit Newline (Preprocessor rules)
+            if (wants_newline) {
+                lexer->result_symbol = PREPROC_NEWLINE;
+                return true;
+            }
+
+            // PRIORITY 2: Blank Line (The "at column 0" logic)
+            // If the line started at 0 and we only saw whitespace + newline,
+            // this is an empty line/extra noise.
+            if (started_at_column_zero && wants_blank) {
+                lexer->result_symbol = BLANK_LINE;
+                return true;
+            }
+
+            // PRIORITY 3: End of Statement (Terminating code)
+            // If the parser wants an EOS and we didn't start at 0,
+            // this newline is "closing" the code that preceded it.
+            if (wants_eos) {
+                lexer->result_symbol = END_OF_STATEMENT;
+                return true;
+            }
         }
     }
 
-    // We're now either in a line continuation or between
-    // statements, so we should eat all whitespace including
-    // newlines, until we come to something more interesting
-    while (iswspace(lexer->lookahead)) {
-        skip(lexer);
+    // 4. Handle EOF
+    if (lexer->eof(lexer)) {
+        if (!started_at_column_zero && valid_symbols[END_OF_STATEMENT]) {
+            lexer->result_symbol = END_OF_STATEMENT;
+            return true;
+        }
+        return false;
     }
 
-    if (scan_end_line_continuation(scanner, lexer)) {
-        return true;
+
+    // 4. Comment Handling: Comments count as EOS if there was code
+    if (lexer->lookahead == '!') {
+        if (scanner->holds_statement && valid_symbols[END_OF_STATEMENT]) {
+            scanner->holds_statement = false;
+            lexer->result_symbol = END_OF_STATEMENT;
+            return true;
+        }
+        // Otherwise, let the internal lexer or comment rule handle the '!'
+        return false;
     }
+
+    // 5. Line Continuation
+    if (scan_end_line_continuation(scanner, lexer)) return true;
+    if (scan_start_line_continuation(scanner, lexer)) return true;
 
     if (valid_symbols[STRING_LITERAL]) {
         if (scan_string_literal(lexer)) {
@@ -652,6 +656,10 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         }
     }
 
+    if (!lexer->eof(lexer) && !iswspace(lexer->lookahead) && lexer->lookahead != '!') {
+      scanner->holds_statement = true;
+    }
+
     return false;
 }
 
@@ -679,6 +687,8 @@ unsigned tree_sitter_fortran_external_scanner_serialize(void *payload,
     size_t size = 0;
 
     buffer[size] = (char)scanner->in_line_continuation;
+    size += 1;
+    buffer[size++] = (char)scanner->holds_statement;
     size += 1;
 
     memcpy(&buffer[size], &scanner->depth, sizeof(int32_t));
@@ -715,6 +725,8 @@ void tree_sitter_fortran_external_scanner_deserialize(void *payload,
     size_t size = 0;
 
     scanner->in_line_continuation = buffer[size];
+    size += 1;
+    scanner->holds_statement = buffer[size];
     size += 1;
 
     memcpy(&scanner->depth, &buffer[size], sizeof(int32_t));
