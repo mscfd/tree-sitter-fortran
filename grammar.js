@@ -123,7 +123,7 @@ module.exports = grammar({
     ),
 
     _top_level_item: $ => prec(2, choice(
-      $.include_statement,
+      seq($.include_statement, $._end_of_statement),
       $.program,
       $.module,
       $.submodule,

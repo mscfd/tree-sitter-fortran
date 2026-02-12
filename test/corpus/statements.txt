@@ -2,6 +2,9 @@
 Include Statements
 ================================================================================
 
+! allowed basically anywhere
+include 'some_file.f90'
+
 PROGRAM TEST
   INCLUDE 'fftw.f03'   ! comment
   include 'other_file.h'
@@ -32,6 +35,9 @@ end subroutine foo
 --------------------------------------------------------------------------------
 
 (translation_unit
+  (comment)
+  (include_statement
+    (filename))
   (program
     (program_statement
       (name))
