@@ -629,7 +629,7 @@ module.exports = grammar({
           ')'
         )),
         seq(
-          alias(caseInsensitive('none', false), $.none),
+          caseInsensitive('none', $.none),
           optional(seq(
             '(',
             commaSep1(choice(
@@ -723,7 +723,7 @@ module.exports = grammar({
           choice(
             $.public_statement,
             $.private_statement,
-            alias(caseInsensitive('sequence'), $.sequence_statement),
+            caseInsensitive('sequence', $.sequence_statement),
             $.include_statement,
           ),
           $._end_of_statement
@@ -1614,7 +1614,7 @@ module.exports = grammar({
       caseInsensitive('case'),
       choice(
         seq('(', $.case_value_range_list, ')'),
-        alias(caseInsensitive('default'), $.default)
+        caseInsensitive('default', $.default)
       ),
       optional($._block_label),
       $._end_of_statement,
@@ -1634,7 +1634,7 @@ module.exports = grammar({
         ),
         seq(
           caseInsensitive('class'),
-          alias(caseInsensitive('default'), $.default)
+          caseInsensitive('default', $.default)
         ),
       ),
       optional($._block_label),
@@ -1651,7 +1651,7 @@ module.exports = grammar({
       caseInsensitive('rank'),
       choice(
         seq('(', $.case_value_range_list, ')'),
-        alias(caseInsensitive('default'), $.default)
+        caseInsensitive('default', $.default)
       ),
       optional($._block_label),
       $._end_of_statement,
@@ -1983,10 +1983,10 @@ module.exports = grammar({
 
     logical_expression: $ => {
       const table = [
-        [caseInsensitive('\\.or\\.'), PREC.LOGICAL_OR],
-        [caseInsensitive('\\.and\\.'), PREC.LOGICAL_AND],
-        [caseInsensitive('\\.eqv\\.'), PREC.LOGICAL_EQUIV],
-        [caseInsensitive('\\.neqv\\.'), PREC.LOGICAL_EQUIV]
+        [caseInsensitive('.or.'), PREC.LOGICAL_OR],
+        [caseInsensitive('.and.'), PREC.LOGICAL_AND],
+        [caseInsensitive('.eqv.'), PREC.LOGICAL_EQUIV],
+        [caseInsensitive('.neqv.'), PREC.LOGICAL_EQUIV]
       ]
 
       return choice(...table.map(([operator, precedence]) => {
@@ -1996,24 +1996,24 @@ module.exports = grammar({
           field('right', $._expression)
         ))
       }).concat(
-        [prec.left(PREC.LOGICAL_NOT, seq(caseInsensitive('\\.not\\.'), $._expression))])
+        [prec.left(PREC.LOGICAL_NOT, seq(caseInsensitive('.not.'), $._expression))])
       )
     },
 
     relational_expression: $ => {
       const operators = [
         '<',
-        caseInsensitive('\\.lt\\.'),
+        caseInsensitive('.lt.'),
         '>',
-        caseInsensitive('\\.gt\\.'),
+        caseInsensitive('.gt.'),
         '<=',
-        caseInsensitive('\\.le\\.'),
+        caseInsensitive('.le.'),
         '>=',
-        caseInsensitive('\\.ge\\.'),
+        caseInsensitive('.ge.'),
         '==',
-        caseInsensitive('\\.eq\\.'),
+        caseInsensitive('.eq.'),
         '/=',
-        caseInsensitive('\\.ne\\.')
+        caseInsensitive('.ne.')
       ]
 
       return choice(...operators.map((operator) => {
@@ -2175,8 +2175,8 @@ module.exports = grammar({
 
     boolean_literal: $ => seq(
       choice(
-        caseInsensitive('\\.true\\.'),
-        caseInsensitive('\\.false\\.')
+        caseInsensitive('.true.'),
+        caseInsensitive('.false.')
       ),
       optional($._kind)
     ),
@@ -2326,7 +2326,7 @@ module.exports = grammar({
 
     // Strictly only valid when used in a conditional_expression as an
     // actual argument
-    nil_literal: $ => caseInsensitive('\\.nil\\.'),
+    nil_literal: $ => caseInsensitive('.nil.'),
 
     // Fortran doesn't have reserved keywords, and to allow _just
     // enough_ ambiguity so that tree-sitter can parse tokens
@@ -2412,25 +2412,29 @@ module.exports = grammar({
 
 module.exports.PREC = PREC
 
-function caseInsensitive (keyword, aliasAsWord = true) {
-  let result = new RegExp(keyword
+// always use alias, as a regexp is used to compare case-insensitively,
+// default is to use the keyword itself, but a rule/named node $.my_name
+// can be provided optionally
+function caseInsensitive (keyword, aliasValue = keyword) {
+  const pattern = keyword
     .split('')
-    .map(l => l !== l.toUpperCase() ? `[${l}${l.toUpperCase()}]` : l)
+    .map(l => {
+      if (l.match(/[a-zA-Z]/)) return `[${l.toLowerCase()}${l.toUpperCase()}]`
+      if (l.match(/[0-9_]/))   return l
+      if (l === '.')           return '\\.'
+      throw new Error(`caseInsensitive: unhandled character '${l}' in keyword '${keyword}'`)
+    })
     .join('')
-  )
-  if (aliasAsWord) result = alias(result, keyword)
-  return result
+
+  // default: aliasValue = keyword
+  return alias(new RegExp(pattern), aliasValue)
 }
 
-function whiteSpacedKeyword (prefix, suffix, aliasAsWord = true) {
-  let prefix_bit = caseInsensitive(prefix, false)
-  let suffix_bit = caseInsensitive(suffix, false)
-  let both_bits = caseInsensitive(prefix + suffix, false)
-  if (aliasAsWord) {
-    prefix_bit = alias(prefix_bit, prefix)
-    suffix_bit = alias(suffix_bit, suffix)
-    both_bits = alias(both_bits, prefix + suffix)
-  }
+
+function whiteSpacedKeyword (prefix, suffix) {
+  let prefix_bit = caseInsensitive(prefix)
+  let suffix_bit = caseInsensitive(suffix)
+  let both_bits = caseInsensitive(prefix + suffix)
   return choice(
     seq(prefix_bit, suffix_bit),
     both_bits
@@ -2453,9 +2457,9 @@ function sep1 (rule, separator) {
 // with optional rule for labels/names, and with optional end-of-statement
 function blockStructureEnding1 ($, structType, labelRule=null) {
   // just listing all combinations looks easier to read
-  const end      = alias(caseInsensitive('end', false), 'end');
-  const strt     = alias(caseInsensitive(structType, false), structType);
-  const end_strt = alias(caseInsensitive('end' + structType, false), 'end' + structType);
+  const end      = caseInsensitive('end');
+  const strt     = caseInsensitive(structType);
+  const end_strt = caseInsensitive('end' + structType);
 
   const obj_end_stmt = choice(
     // when structure keyword is present, allow the label
@@ -2473,12 +2477,12 @@ function blockStructureEnding1 ($, structType, labelRule=null) {
 // 'end', 'end block' and 'end block data', with or without white spaces,
 // with optional rule for labels/names, and with optional end-of-statement
 function blockStructureEnding2 ($, structType1, structType2, labelRule=null, require_blank=false) {
-  const end          = alias(caseInsensitive('end', false), 'end');
-  const strt_1       = alias(caseInsensitive(structType1, false), structType1);
-  const strt_2       = alias(caseInsensitive(structType2, false), structType2);
-  const strt_1_2     = alias(caseInsensitive(structType1 + structType2, false), structType1 + structType2);
-  const end_strt_1   = alias(caseInsensitive('end' + structType1, false), 'end' + structType1);
-  const end_strt_1_2 = alias(caseInsensitive('end' + structType1 + structType2, false), 'end' + structType1 + structType2);
+  const end          = caseInsensitive('end');
+  const strt_1       = caseInsensitive(structType1);
+  const strt_2       = caseInsensitive(structType2);
+  const strt_1_2     = caseInsensitive(structType1 + structType2);
+  const end_strt_1   = caseInsensitive('end' + structType1);
+  const end_strt_1_2 = caseInsensitive('end' + structType1 + structType2);
 
 
   let obj_end_stmt;
