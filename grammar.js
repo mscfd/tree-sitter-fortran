@@ -629,7 +629,7 @@ module.exports = grammar({
           ')'
         )),
         seq(
-          alias(caseInsensitive('none', false), $.none),
+          caseInsensitive('none', $.none),
           optional(seq(
             '(',
             commaSep1(choice(
@@ -723,7 +723,7 @@ module.exports = grammar({
           choice(
             $.public_statement,
             $.private_statement,
-            alias(caseInsensitive('sequence'), $.sequence_statement),
+            caseInsensitive('sequence', $.sequence_statement),
             $.include_statement,
           ),
           $._end_of_statement
@@ -1614,7 +1614,7 @@ module.exports = grammar({
       caseInsensitive('case'),
       choice(
         seq('(', $.case_value_range_list, ')'),
-        alias(caseInsensitive('default'), $.default)
+        caseInsensitive('default', $.default)
       ),
       optional($._block_label),
       $._end_of_statement,
@@ -1634,7 +1634,7 @@ module.exports = grammar({
         ),
         seq(
           caseInsensitive('class'),
-          alias(caseInsensitive('default'), $.default)
+          caseInsensitive('default', $.default)
         ),
       ),
       optional($._block_label),
@@ -1651,7 +1651,7 @@ module.exports = grammar({
       caseInsensitive('rank'),
       choice(
         seq('(', $.case_value_range_list, ')'),
-        alias(caseInsensitive('default'), $.default)
+        caseInsensitive('default', $.default)
       ),
       optional($._block_label),
       $._end_of_statement,
@@ -2411,8 +2411,11 @@ module.exports = grammar({
 
 module.exports.PREC = PREC
 
-function caseInsensitive (keyword, aliasAsWord = true) {
-  let result = new RegExp(keyword
+// always use alias, as a regexp is used to compare case-insensitively,
+// default is to use the keyword itself, but a rule/named node $.my_name
+// can be provided optionally
+function caseInsensitive (keyword, aliasValue = keyword) {
+  const pattern = keyword
     .split('')
     .map(l => {
       if (l.match(/[a-zA-Z]/)) return `[${l.toLowerCase()}${l.toUpperCase()}]`
@@ -2421,9 +2424,9 @@ function caseInsensitive (keyword, aliasAsWord = true) {
       throw new Error(`caseInsensitive: unhandled character '${l}' in keyword '${keyword}'`)
     })
     .join('')
-  )
-  if (aliasAsWord) result = alias(result, keyword)
-  return result
+
+  // default: aliasValue = keyword
+  return alias(new RegExp(pattern), aliasValue)
 }
 
 
