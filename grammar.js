@@ -123,7 +123,7 @@ module.exports = grammar({
     ),
 
     _top_level_item: $ => prec(2, choice(
-      $.include_statement,
+      seq($.include_statement, $._end_of_statement),
       $.program,
       $.module,
       $.submodule,
@@ -177,7 +177,7 @@ module.exports = grammar({
       token.immediate(/\r?\n/),
     ),
 
-    ...preprocIf('', $ => repeat($._top_level_item)),
+    ...preprocIf('', $ => repeat($._top_level_item), 4),
     ...preprocIf('_in_module', $ => seq(
       repeat($._specification_part),
       optional($.internal_procedures)
@@ -2372,6 +2372,7 @@ module.exports = grammar({
       caseInsensitive('kind'),
       caseInsensitive('len'),
       caseInsensitive('lock'),
+      caseInsensitive('module'),
       caseInsensitive('null'),
       prec(-1, caseInsensitive('open')),
       caseInsensitive('optional'),
