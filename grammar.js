@@ -1996,7 +1996,9 @@ module.exports = grammar({
           field('right', $._expression)
         ))
       }).concat(
-        [prec.left(PREC.LOGICAL_NOT, seq(caseInsensitive('\\.not\\.'), $._expression))])
+        [prec.left(PREC.LOGICAL_NOT, seq(
+          field('operator', caseInsensitive('\\.not\\.')),
+          field('argument', $._expression)))])
       )
     },
 
