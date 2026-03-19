@@ -1279,7 +1279,9 @@ module.exports = grammar({
 
     // `call` should bind more tightly than ordinary expressions
     subroutine_call: $ => prec(1, seq(
-      caseInsensitive('call'),
+      choice(
+        caseInsensitive('call'),
+        '_CC_'),
       // Allow expressions to allow calling type-bound procedures
       field('subroutine', $._expression),
       optional($.cuda_kernel_argument_list),
