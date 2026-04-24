@@ -1157,6 +1157,7 @@ module.exports = grammar({
       caseInsensitive('module'),
       caseInsensitive('non_recursive'),
       caseInsensitive('pure'),
+      '_PURE_',
       caseInsensitive('recursive'),
       caseInsensitive('simple'),
     ),
