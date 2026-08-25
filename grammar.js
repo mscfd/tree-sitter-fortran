@@ -1203,6 +1203,7 @@ module.exports = grammar({
       $.subroutine_call,
       $.keyword_statement,
       $.if_statement,
+      $.mpi_if_statement,
       $.arithmetic_if_statement,
       $.where_statement,
       $.forall_statement,
@@ -1533,6 +1534,18 @@ module.exports = grammar({
       $._end_of_statement,
       repeat($._statement)
     ),
+
+    mpi_if_statement: $ => seq(
+      optional($.block_label_start_expression),
+      alias('_MPI_if_', 'if'),
+      $.parenthesized_expression,
+      $._end_of_statement,
+      repeat($._statement),
+      $.mpi_end_if_statement
+    ),
+
+    mpi_end_if_statement: $ => prec(1, alias('_MPI_endif_', 'end')),
+
 
     where_statement: $ => choice(
       $._inline_where_statement,
