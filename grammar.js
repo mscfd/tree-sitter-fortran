@@ -183,11 +183,18 @@ module.exports = grammar({
       field('argument', optional($.preproc_arg)),
       token.immediate(/\r?\n/),
     ),
+
     preproc_mpi: $ => seq(
       choice('_MPI_call_', '_MPI_prepare_'),
       token.immediate('('),
       $._statements,
       token.immediate(')')
+    ),
+
+   preproc_macro: $ => choice(
+     '_RR_',
+     '_QS_',
+     '_QQ_',
     ),
 
     ...preprocIf('', $ => repeat($._top_level_item), 4),
@@ -1190,6 +1197,7 @@ module.exports = grammar({
       $.preproc_function_def,
       $.preproc_call,
       $.preproc_mpi,
+      $.preproc_macro,
       seq(
         optional($.statement_label),
         $._statements,
